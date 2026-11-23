@@ -1,0 +1,7 @@
+{
+  "name": "FatEnemies",
+  "version_number": "2.0.1",
+  "website_url": "https://github.com/bshayler/valheim-fat-enemies",
+  "description": "Makes every enemy fat and slow. Pick any creature in the pause menu and tune belly, arms, legs, head, width and speed with sliders.",
+  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
+}
