@@ -2,6 +2,8 @@
 
 Makes every non-player creature (Greylings, Trolls, Boars, bosses...) much wider **and slower**.
 
+v1.2: rounder defaults (BellySize 2.2, BodyWidth 1.4, arms inflate too, FatLimbs option).
+
 v1.1: instead of stretching the whole creature, the spine bone is inflated while head, arms and legs are scaled back down, so they look like they gained weight rather than just grew. If you used v1.0, delete `BepInEx/config/com.example.fatenemies.cfg` so the new defaults apply.
 
 ## Install

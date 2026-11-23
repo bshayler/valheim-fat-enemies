@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace FatEnemies
 {
-    [BepInPlugin(Guid, "Fat Enemies", "1.1.0")]
+    [BepInPlugin(Guid, "Fat Enemies", "1.2.0")]
     public class FatEnemiesPlugin : BaseUnityPlugin
     {
         public const string Guid = "com.example.fatenemies";
@@ -15,6 +15,7 @@ namespace FatEnemies
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<float> BellySize;
+        internal static ConfigEntry<bool> FatLimbs;
         internal static ConfigEntry<float> BodyWidth;
         internal static ConfigEntry<float> BodyHeight;
         internal static ConfigEntry<float> SpeedMultiplier;
@@ -26,13 +27,15 @@ namespace FatEnemies
         {
             Log = Logger;
             Enabled = Config.Bind("General", "Enabled", true, "Turn the fatness on or off.");
-            BellySize = Config.Bind("Fatness", "BellySize", 1.7f,
-                new ConfigDescription("How much the torso balloons (spine bone scale). 1 = normal, 1.7 = chonky, 2.5 = absurd. Head, arms and legs keep their size.",
+            BellySize = Config.Bind("Fatness", "BellySize", 2.2f,
+                new ConfigDescription("How much the torso balloons (spine bone scale). 1 = normal, 2.2 = very round, 3 = absurd. The head is kept at normal size.",
                     new AcceptableValueRange<float>(1f, 4f)));
-            BodyWidth = Config.Bind("Fatness", "BodyWidth", 1.0f,
-                new ConfigDescription("Extra whole-body sideways stretch. Leave at 1 for the belly look; higher just makes them bigger.",
+            FatLimbs = Config.Bind("Fatness", "FatLimbs", true,
+                "Arms (and anything else on the torso) inflate with the belly. Only the head is kept normal size. Set false to keep arms thin.");
+            BodyWidth = Config.Bind("Fatness", "BodyWidth", 1.4f,
+                new ConfigDescription("Whole-body sideways/front-back stretch applied on top of the belly. 1 = none.",
                     new AcceptableValueRange<float>(0.5f, 6f)));
-            BodyHeight = Config.Bind("Fatness", "BodyHeight", 1.0f,
+            BodyHeight = Config.Bind("Fatness", "BodyHeight", 0.9f,
                 new ConfigDescription("Whole-body vertical multiplier.", new AcceptableValueRange<float>(0.5f, 3f)));
             SpeedMultiplier = Config.Bind("Slowness", "SpeedMultiplier", 0.6f,
                 new ConfigDescription("Movement speed multiplier (walk/run/swim/fly). 1 = vanilla.",
@@ -93,7 +96,7 @@ namespace FatEnemies
 
             float f = FatEnemiesPlugin.Enabled.Value ? FatEnemiesPlugin.BellySize.Value : 1f;
             _belly.localScale = _bellyBase * f;
-            // Cancel the inflation on everything hanging off the torso (head, arms, legs).
+            // Cancel the inflation on the head (or everything off the torso if FatLimbs is false).
             for (int i = 0; i < _counters.Count; i++)
                 if (_counters[i] != null) _counters[i].localScale = _counterBase[i] / f;
         }
@@ -144,7 +147,7 @@ namespace FatEnemies
             Collect(root, chain);
             foreach (var bone in chain)
                 foreach (Transform child in bone)
-                    if (!chain.Contains(child))
+                    if (!chain.Contains(child) && (!FatEnemiesPlugin.FatLimbs.Value || NameHas(child, "neck") || NameHas(child, "head")))
                     {
                         _counters.Add(child);
                         _counterBase.Add(child.localScale);
