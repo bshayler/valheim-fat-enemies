@@ -32,6 +32,7 @@ Edit `BepInEx/config/com.example.fatenemies.cfg` with the game closed.
 | General | `AffectBosses` | `true` | Also fatten bosses. |
 | Fatness | `BellySize` | `2.2` | Torso inflation. 1 is normal, 3 is absurd. |
 | Fatness | `FatLimbs` | `true` | Arms inflate with the belly. Only the head stays normal size. Set `false` for thin arms. |
+| Fatness | `LimbSize` | `1.8` | Thickness of every arm and leg, scaled across the limb rather than along it, so limbs get fat without getting longer. |
 | Fatness | `BodyWidth` | `1.4` | Whole-body sideways and front-to-back stretch. |
 | Fatness | `BodyHeight` | `0.9` | Whole-body height multiplier. Below 1 looks squatter. |
 | Slowness | `SpeedMultiplier` | `0.6` | Walk, run, swim and fly speed. 1 is vanilla. |
@@ -44,8 +45,9 @@ If you update from an older version, delete the old `.cfg` so the new defaults a
 Harmony patches `Character.Awake` and `Character.SetLevel` and tags each non-player creature with a small component. Every frame (after the Animator runs) that component:
 
 1. Scales the creature's topmost "spine" bone, falling back to "hips" or "pelvis", by `BellySize`.
-2. Counter-scales the head so it keeps its normal size.
-3. Scales the animator's speed by `AnimationSpeedMultiplier`.
+2. Thickens every arm and leg bone across its width (`LimbSize`).
+3. Counter-scales the head so it keeps its normal size.
+4. Scales the animator's speed by `AnimationSpeedMultiplier`.
 
 The creature's walk, run, swim and fly speeds are scaled once by `SpeedMultiplier`. Re-applying never compounds.
 

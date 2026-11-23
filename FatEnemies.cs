@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace FatEnemies
 {
-    [BepInPlugin(Guid, "Fat Enemies", "1.2.0")]
+    [BepInPlugin(Guid, "Fat Enemies", "1.3.0")]
     public class FatEnemiesPlugin : BaseUnityPlugin
     {
         public const string Guid = "com.example.fatenemies";
@@ -16,6 +16,7 @@ namespace FatEnemies
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<float> BellySize;
         internal static ConfigEntry<bool> FatLimbs;
+        internal static ConfigEntry<float> LimbSize;
         internal static ConfigEntry<float> BodyWidth;
         internal static ConfigEntry<float> BodyHeight;
         internal static ConfigEntry<float> SpeedMultiplier;
@@ -32,6 +33,9 @@ namespace FatEnemies
                     new AcceptableValueRange<float>(1f, 4f)));
             FatLimbs = Config.Bind("Fatness", "FatLimbs", true,
                 "Arms (and anything else on the torso) inflate with the belly. Only the head is kept normal size. Set false to keep arms thin.");
+            LimbSize = Config.Bind("Fatness", "LimbSize", 1.8f,
+                new ConfigDescription("Thickness of every arm and leg (scaled across the limb, not along it, so limbs get fat without getting longer). 1 = normal.",
+                    new AcceptableValueRange<float>(1f, 4f)));
             BodyWidth = Config.Bind("Fatness", "BodyWidth", 1.4f,
                 new ConfigDescription("Whole-body sideways/front-back stretch applied on top of the belly. 1 = none.",
                     new AcceptableValueRange<float>(0.5f, 6f)));
@@ -68,6 +72,15 @@ namespace FatEnemies
         private readonly List<Transform> _counters = new List<Transform>();
         private readonly List<Vector3> _counterBase = new List<Vector3>();
 
+        private class Limb
+        {
+            public Transform Bone;
+            public Vector3 Base;
+            public int Axis;          // the bone's long axis (left at 1x)
+            public bool CounterScaled; // also cancelled against the belly inflation
+        }
+        private readonly List<Limb> _limbs = new List<Limb>();
+
         private void Awake() => _animator = GetComponentInChildren<Animator>();
 
         // Runs after the Animator each frame, so our bone scales win over the animation pose.
@@ -99,6 +112,45 @@ namespace FatEnemies
             // Cancel the inflation on the head (or everything off the torso if FatLimbs is false).
             for (int i = 0; i < _counters.Count; i++)
                 if (_counters[i] != null) _counters[i].localScale = _counterBase[i] / f;
+
+            float l = FatEnemiesPlugin.Enabled.Value ? FatEnemiesPlugin.LimbSize.Value : 1f;
+            foreach (var limb in _limbs)
+            {
+                if (limb.Bone == null) continue;
+                var thick = new Vector3(l, l, l);
+                if (limb.Axis >= 0) thick[limb.Axis] = 1f;
+                var v = Vector3.Scale(limb.Base, thick);
+                limb.Bone.localScale = limb.CounterScaled ? v / f : v;
+            }
+        }
+
+        private static bool IsLimbName(Transform t)
+        {
+            if (NameHas(t, "armature") || NameHas(t, "armor") || NameHas(t, "harm")) return false;
+            return NameHas(t, "arm") || NameHas(t, "leg") || NameHas(t, "thigh");
+        }
+
+        private static bool HasLimbAncestor(Transform t)
+        {
+            for (var p = t.parent; p != null; p = p.parent)
+                if (IsLimbName(p)) return true;
+            return false;
+        }
+
+        // Which local axis points down the bone (toward its child)?
+        private static int LongAxis(Transform bone)
+        {
+            Transform far = null;
+            float best = 0f;
+            foreach (Transform c in bone)
+            {
+                float m = c.localPosition.sqrMagnitude;
+                if (m > best) { best = m; far = c; }
+            }
+            if (far == null) return -1;
+            var d = far.localPosition;
+            float ax = Mathf.Abs(d.x), ay = Mathf.Abs(d.y), az = Mathf.Abs(d.z);
+            return ax >= ay && ax >= az ? 0 : (ay >= az ? 1 : 2);
         }
 
         private static bool NameHas(Transform t, string s) =>
@@ -153,10 +205,18 @@ namespace FatEnemies
                         _counterBase.Add(child.localScale);
                     }
 
+            foreach (var t in all)
+            {
+                if (t == transform || !IsLimbName(t) || HasLimbAncestor(t)) continue;
+                int idx = _counters.IndexOf(t);
+                if (idx >= 0) { _counters.RemoveAt(idx); _counterBase.RemoveAt(idx); }
+                _limbs.Add(new Limb { Bone = t, Base = t.localScale, Axis = LongAxis(t), CounterScaled = idx >= 0 });
+            }
+
             _belly = root;
             _bellyBase = root.localScale;
             if (Reported.Add(label))
-                FatEnemiesPlugin.Log.LogInfo(label + ": belly bone '" + root.name + "', " + _counters.Count + " counter-scaled");
+                FatEnemiesPlugin.Log.LogInfo(label + ": belly bone '" + root.name + "', " + _counters.Count + " counter-scaled, " + _limbs.Count + " limbs");
         }
 
         private static void Collect(Transform t, HashSet<Transform> chain)
