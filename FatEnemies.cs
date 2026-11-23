@@ -35,7 +35,7 @@ namespace FatEnemies
         }
     }
 
-    [BepInPlugin(Guid, "Fat Enemies", "2.0.0")]
+    [BepInPlugin(Guid, "Fat Enemies", "2.0.1")]
     public class FatEnemiesPlugin : BaseUnityPlugin
     {
         public const string Guid = "com.example.fatenemies";
@@ -152,14 +152,35 @@ namespace FatEnemies
         private void RefreshNames()
         {
             var set = new HashSet<string>(Seen);
-            try
+            try { CollectPrefabNames(set); }
+            catch (Exception e)
             {
-                foreach (var go in ZNetScene.instance.m_prefabs)
-                    if (go != null && go.name != "Player" && go.GetComponent<Character>() != null) set.Add(go.name);
+                if (!_prefabWarned) { _prefabWarned = true; Log.LogWarning("Could not list spawnable creatures (" + e.GetType().Name + "); showing creatures seen so far."); }
             }
-            catch { /* fall back to creatures seen so far */ }
             _names = new List<string>(set);
             _names.Sort(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private bool _prefabWarned;
+
+        // Reflection on purpose: a renamed game member must never be able to break the panel.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void CollectPrefabNames(HashSet<string> set)
+        {
+            var type = AccessTools.TypeByName("ZNetScene");
+            if (type == null) return;
+            object inst = AccessTools.Property(type, "instance")?.GetValue(null, null)
+                          ?? AccessTools.Field(type, "instance")?.GetValue(null);
+            if (inst == null) return;
+            object prefabs = AccessTools.Field(type, "m_prefabs")?.GetValue(inst)
+                             ?? AccessTools.Property(type, "m_prefabs")?.GetValue(inst, null);
+            var list = prefabs as System.Collections.IEnumerable;
+            if (list == null) return;
+            foreach (var o in list)
+            {
+                var go = o as GameObject;
+                if (go != null && go.name != "Player" && go.GetComponent<Character>() != null) set.Add(go.name);
+            }
         }
 
         private void OnGUI()
@@ -325,7 +346,15 @@ namespace FatEnemies
         {
             var p = FatEnemiesPlugin.Enabled.Value ? FatEnemiesPlugin.GetProfile(_label) : null;
             UpdateRoot(p);
-            UpdateSpeed(p);
+            if (!_speedBroken)
+            {
+                try { UpdateSpeed(p); }
+                catch (Exception e)
+                {
+                    _speedBroken = true;
+                    FatEnemiesPlugin.Log.LogWarning("Speed control disabled (" + e.GetType().Name + "): " + e.Message);
+                }
+            }
             UpdateAnimation(p);
             UpdateBones(p);
         }
@@ -339,6 +368,9 @@ namespace FatEnemies
             transform.localScale = _rootSet;
         }
 
+        private static bool _speedBroken;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void UpdateSpeed(Profile p)
         {
             if (_char == null) return;
