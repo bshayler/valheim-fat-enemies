@@ -14,6 +14,7 @@ namespace FatEnemies
         internal static ConfigEntry<float> Width;
         internal static ConfigEntry<float> Height;
         internal static ConfigEntry<float> SpeedMultiplier;
+        internal static ConfigEntry<float> AnimationSpeedMultiplier;
         internal static ConfigEntry<bool> AffectTamed;
         internal static ConfigEntry<bool> AffectBosses;
 
@@ -29,6 +30,9 @@ namespace FatEnemies
             SpeedMultiplier = Config.Bind("General", "SpeedMultiplier", 0.6f,
                 new ConfigDescription("Movement speed multiplier (walk/run/swim/fly). 1 = vanilla, 0.6 = fat and slow.",
                     new AcceptableValueRange<float>(0.1f, 2f)));
+            AnimationSpeedMultiplier = Config.Bind("General", "AnimationSpeedMultiplier", 0.6f,
+                new ConfigDescription("Animation playback speed multiplier. Also slows attack wind-ups. 1 = vanilla.",
+                    new AcceptableValueRange<float>(0.1f, 2f)));
             AffectTamed = Config.Bind("General", "AffectTamed", false, "Also fatten tamed creatures.");
             AffectBosses = Config.Bind("General", "AffectBosses", true, "Also fatten bosses.");
 
@@ -41,6 +45,26 @@ namespace FatEnemies
     {
         public Vector3 Applied = Vector3.one;
         public float SpeedApplied = 1f;
+
+        private Animator _animator;
+        private float _lastSet = -1f;
+
+        private void Awake() => _animator = GetComponentInChildren<Animator>();
+
+        // The game can reassign animator.speed at any time (freezes, sync, etc.), so each frame we
+        // treat any value we didn't set as the new baseline and scale that.
+        private void LateUpdate()
+        {
+            if (_animator == null) return;
+            float factor = FatEnemiesPlugin.Enabled.Value ? FatEnemiesPlugin.AnimationSpeedMultiplier.Value : 1f;
+            float current = _animator.speed;
+            float baseline = Mathf.Approximately(current, _lastSet) ? current / Mathf.Max(_lastFactor, 0.0001f) : current;
+            _lastFactor = factor;
+            _lastSet = baseline * factor;
+            _animator.speed = _lastSet;
+        }
+
+        private float _lastFactor = 1f;
     }
 
     internal static class Fatten

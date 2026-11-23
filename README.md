@@ -11,6 +11,7 @@ Makes every non-player creature (Greylings, Trolls, Boars, bosses...) much wider
 - `Width` (default 2.5) – how fat. 1 = vanilla.
 - `Height` (default 1.0)
 - `SpeedMultiplier` (default 0.6) – movement speed (walk/run/swim/fly). 1 = vanilla.
+- `AnimationSpeedMultiplier` (default 0.6) – animation playback speed; also slows attack wind-ups.
 - `AffectTamed`, `AffectBosses`, `Enabled`
 
 Note: scaling the root also scales hitboxes, so fat enemies are easier to hit
