@@ -6,50 +6,60 @@ Greydwarves, Trolls, boars, bosses: anything that isn't a player gets a big roun
 
 ## Features
 
-- **Round, not just big.** The spine bone is inflated while the head is scaled back down, so enemies look like they gained weight instead of simply growing.
-- **Wider overall.** An optional whole-body stretch adds to the effect.
-- **Slower.** Movement speed and animation speed are both reduced (this also slows attack wind-ups, so you get more time to dodge).
-- **Configurable.** Every value is tunable in a config file, and you can leave tamed animals and bosses alone.
-- Works with leveled (starred) creatures.
+- **In-game panel.** Open the pause menu and click **Fat Enemies** (bottom-left). Pick any creature from the list and drag sliders for its belly, arms, legs, head, width, height, move speed and animation speed. Changes show up on living enemies immediately.
+- **Per-creature settings.** Make Trolls enormous and Greylings only slightly chubby. Creatures with their own settings are marked with a star in the list. "All enemies" edits the default for everything else.
+- **Round, not just big.** The spine bone is inflated while the head is scaled back, so enemies look like they gained weight instead of simply growing.
+- **Slower.** Movement and animation speed are both reduced (this also slows attack wind-ups, so you get more time to dodge).
+- **Remembers your settings.** Saved automatically; you can also edit the config files by hand.
 
 ## Install
 
 1. Install **BepInExPack_Valheim** from [Thunderstore](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/), either with a mod manager such as r2modman or manually into your Valheim folder. Launch the game once so the `BepInEx` folders are created.
 2. Download [`dist/FatEnemies-dropin.zip`](dist/FatEnemies-dropin.zip) and unzip it.
 3. Copy `FatEnemies.dll` into `Valheim/BepInEx/plugins/`. (If you drag the whole `BepInEx` folder over your install, choose **merge**, never replace.)
-4. Launch Valheim. A config file appears at `BepInEx/config/com.example.fatenemies.cfg`.
+4. Launch Valheim. Pause (Esc) and click **Fat Enemies** in the bottom-left corner.
 
 With r2modman, put the DLL in the profile's `BepInEx/plugins` folder instead (Settings, then Browse profile folder).
 
-## Configuration
+## Using the panel
 
-Edit `BepInEx/config/com.example.fatenemies.cfg` with the game closed.
+1. Press Esc to open the pause menu and click **Fat Enemies** (bottom-left).
+2. Choose **All enemies (default)** or a specific creature in the list. Use the search box to filter, and **Refresh list** after loading a world.
+3. Drag the sliders. Enemies that are already spawned update live.
+4. Click **Reset to default** to drop a creature's custom settings. Click **Save**, or just close the panel, to persist your changes.
+
+The panel is on the left side of the screen so it stays clear of the pause menu's buttons. If the pause-menu button doesn't appear on your game version, the log says so and **F8** opens the panel instead.
+
+## Configuration files
+
+Edit with the game closed.
+
+- `BepInEx/config/com.example.fatenemies.cfg` holds the master switch and the defaults for all enemies.
+- `BepInEx/config/com.example.fatenemies.creatures.txt` holds per-creature settings written by the panel (`name|belly|arms|legs|head|width|height|speed|anim`).
 
 | Section | Setting | Default | What it does |
 |---|---|---|---|
 | General | `Enabled` | `true` | Turns the mod on or off. |
-| General | `AffectTamed` | `false` | Also fatten tamed creatures. |
-| General | `AffectBosses` | `true` | Also fatten bosses. |
-| Fatness | `BellySize` | `2.2` | Torso inflation. 1 is normal, 3 is absurd. |
-| Fatness | `FatLimbs` | `true` | Arms inflate with the belly. Only the head stays normal size. Set `false` for thin arms. |
-| Fatness | `LimbSize` | `1.8` | Thickness of every arm and leg, scaled across the limb rather than along it, so limbs get fat without getting longer. |
-| Fatness | `BodyWidth` | `1.4` | Whole-body sideways and front-to-back stretch. |
-| Fatness | `BodyHeight` | `0.9` | Whole-body height multiplier. Below 1 looks squatter. |
-| Slowness | `SpeedMultiplier` | `0.6` | Walk, run, swim and fly speed. 1 is vanilla. |
-| Slowness | `AnimationSpeedMultiplier` | `0.6` | Animation playback speed. 1 is vanilla. |
+| General | `AffectTamed` | `false` | Also change tamed creatures. |
+| General | `AffectBosses` | `true` | Also change bosses. |
+| Default | `BellySize` | `2.2` | Torso inflation. 1 is normal. |
+| Default | `ArmSize` | `1.8` | Arm thickness across the arm, not its length. |
+| Default | `LegSize` | `1.8` | Leg thickness across the leg, not its length. |
+| Default | `HeadSize` | `1.0` | Head size. |
+| Default | `BodyWidth` | `1.4` | Whole-body sideways and front-to-back stretch. |
+| Default | `BodyHeight` | `0.9` | Whole-body height multiplier. |
+| Default | `SpeedMultiplier` | `0.6` | Movement speed. 1 is vanilla. |
+| Default | `AnimationSpeedMultiplier` | `0.6` | Animation playback speed. 1 is vanilla. |
 
-If you update from an older version, delete the old `.cfg` so the new defaults apply.
+If you update from v1.x, delete the old `.cfg` so the new layout is generated.
 
 ## How it works
 
-Harmony patches `Character.Awake` and `Character.SetLevel` and tags each non-player creature with a small component. Every frame (after the Animator runs) that component:
+Harmony patches `Character.Awake` to tag each non-player creature with a small component. Every frame (after the Animator runs) that component applies the creature's current profile:
 
-1. Scales the creature's topmost "spine" bone, falling back to "hips" or "pelvis", by `BellySize`.
-2. Thickens every arm and leg bone across its width (`LimbSize`).
-3. Counter-scales the head so it keeps its normal size.
-4. Scales the animator's speed by `AnimationSpeedMultiplier`.
-
-The creature's walk, run, swim and fly speeds are scaled once by `SpeedMultiplier`. Re-applying never compounds.
+1. Scales the topmost "spine" bone (falling back to "hips" or "pelvis") by the belly value.
+2. Cancels that inflation on everything hanging off the torso, then re-applies your arm, leg and head sliders. Arms and legs are thickened across the bone only, so they get fat without getting longer.
+3. Applies the whole-body width and height, the movement speed and the animation speed.
 
 Bones are found by name, so an unusual skeleton may not match. The log reports what was found for each creature type, for example `Troll: belly bone 'Spine', 1 counter-scaled`, or `no spine/hips bone found, belly effect skipped` if nothing matched.
 
