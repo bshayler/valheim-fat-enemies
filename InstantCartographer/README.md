@@ -4,6 +4,8 @@ A BepInEx mod for Valheim. Open your map and every Cartography Table syncs both 
 - **Read** (the table's "show others" side): data stored in tables is merged into your map.
 - **Write** (the "place your markings" side): your exploration and pins are published to the tables.
 
+On the large map there is an **Instant Cartographer** checkbox (above the "publish position" one) to turn syncing on or off; the choice is saved to the config.
+
 ## Install
 Drop `InstantCartographer.dll` into `BepInEx/plugins/` (requires BepInExPack Valheim).
 

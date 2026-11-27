@@ -4,6 +4,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace InstantCartographer
 {
@@ -151,6 +152,48 @@ namespace InstantCartographer
         private static void Postfix(Minimap.MapMode mode)
         {
             if (mode == Minimap.MapMode.Large) InstantCartographerPlugin.SyncAll();
+        }
+    }
+
+    /// <summary>Adds an on/off toggle to the large map, stacked just above the vanilla "publish position" toggle.</summary>
+    [HarmonyPatch(typeof(Minimap), "Start")]
+    internal static class MapToggleBuilder
+    {
+        internal static Toggle Toggle;
+
+        private static void Postfix(Minimap __instance)
+        {
+            try
+            {
+                var source = __instance.m_publicPosition;
+                if (source == null) return;
+                var go = UnityEngine.Object.Instantiate(source.gameObject, source.transform.parent);
+                go.name = "InstantCartographerToggle";
+                foreach (var loc in go.GetComponentsInChildren<Localize>(true)) UnityEngine.Object.Destroy(loc);
+                var label = go.GetComponentInChildren<Text>(true);
+                if (label != null) label.text = "Instant Cartographer";
+
+                var srcRect = (RectTransform)source.transform;
+                var rect = (RectTransform)go.transform;
+                rect.anchoredPosition = srcRect.anchoredPosition + new Vector2(0f, srcRect.rect.height + 6f);
+
+                Toggle = go.GetComponent<Toggle>();
+                Toggle.onValueChanged.RemoveAllListeners();
+                Toggle.SetIsOnWithoutNotify(InstantCartographerPlugin.Enabled.Value);
+                Toggle.onValueChanged.AddListener(on => InstantCartographerPlugin.Enabled.Value = on);
+            }
+            catch (Exception e) { InstantCartographerPlugin.Instance.Logger.LogWarning("Could not add map toggle: " + e.Message); }
+        }
+    }
+
+    [HarmonyPatch(typeof(Minimap), nameof(Minimap.SetMapMode))]
+    internal static class MapToggleRefresh
+    {
+        // Keep the checkbox in step with the config file if it was edited while playing.
+        private static void Postfix()
+        {
+            if (MapToggleBuilder.Toggle != null)
+                MapToggleBuilder.Toggle.SetIsOnWithoutNotify(InstantCartographerPlugin.Enabled.Value);
         }
     }
 }
