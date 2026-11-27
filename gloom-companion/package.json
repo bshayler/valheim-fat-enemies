@@ -1,0 +1,20 @@
+{
+  "name": "gloom-companion",
+  "version": "1.0.0",
+  "description": "Original companion tracker for cooperative dungeon-crawl board games (initiative, monsters, characters, elements, modifier deck).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "local.gloomcompanion",
+    "productName": "Gloom Companion",
+    "files": ["main.js", "index.html"],
+    "mac": { "category": "public.app-category.games", "target": "dmg" }
+  }
+}

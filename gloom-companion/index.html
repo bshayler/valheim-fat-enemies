@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gloom Companion</title>
+<style>
+:root{
+  --bg:#1b1712; --panel:#2a241c; --panel2:#352d23; --ink:#efe6d5; --mute:#a99d86;
+  --gold:#d9a441; --red:#c8553d; --green:#6fae6a; --blue:#5b8fc7; --line:#4a3f31;
+}
+@media (prefers-color-scheme: light){
+  :root{--bg:#efe7d6;--panel:#fbf6ea;--panel2:#f1e8d3;--ink:#2a241c;--mute:#7a6e58;--line:#cdbf9f;--gold:#a8741a}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;user-select:none}
+button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--gold)}
+button.primary{background:var(--gold);color:#1b1712;border-color:var(--gold);font-weight:600}
+button.danger{border-color:var(--red);color:var(--red)}
+button.sm{padding:2px 8px;border-radius:6px}
+button:disabled{opacity:.4;cursor:default}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+header{display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:17px;margin:0 8px 0 0;color:var(--gold);letter-spacing:.04em}
+.spacer{flex:1}
+.pill{padding:3px 10px;border:1px solid var(--line);border-radius:99px;color:var(--mute)}
+.pill b{color:var(--ink)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:14px 16px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;gap:12px;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;position:relative}
+.row.done{opacity:.45}
+.row.current{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 40%,transparent)}
+.badge{width:54px;min-height:54px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.badge .n{font-size:22px;font-weight:700;color:var(--gold)}
+.badge .l{font-size:10px;color:var(--mute);text-transform:uppercase}
+.body{flex:1;min-width:0}
+.title{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.title .sub{color:var(--mute);font-weight:400;font-size:13px}
+.stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:13px;color:var(--mute)}
+.stat{background:var(--panel2);border-radius:6px;padding:1px 8px}
+.card{margin-top:8px;background:var(--panel2);border:1px dashed var(--line);border-radius:8px;padding:6px 10px;font-size:13px;white-space:pre-wrap}
+.card b{color:var(--gold)}
+.standees{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.st{width:96px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--bg);cursor:pointer;text-align:center}
+.st.elite{border-color:var(--gold)}
+.st .num{font-weight:700;font-size:16px}
+.st .hp{font-size:18px;font-weight:700}
+.bar{height:5px;background:var(--line);border-radius:4px;overflow:hidden;margin:3px 0}
+.bar i{display:block;height:100%;background:var(--green)}
+.bar.low i{background:var(--red)}
+.conds{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;min-height:16px}
+.cond{font-size:10px;background:var(--red);color:#fff;border-radius:4px;padding:0 4px}
+.cond.good{background:var(--green)}
+.side .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.side h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--mute);letter-spacing:.06em}
+.elems{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.el{border:1px solid var(--line);border-radius:10px;padding:8px 2px;text-align:center;cursor:pointer;background:var(--bg)}
+.el .s{font-size:11px;color:var(--mute)}
+.el.strong{background:color-mix(in srgb,var(--gold) 35%,var(--bg));border-color:var(--gold)}
+.el.waning{background:color-mix(in srgb,var(--gold) 12%,var(--bg));border-color:var(--gold);border-style:dashed}
+.amd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.amdcard{font-size:26px;font-weight:700;min-width:64px;text-align:center;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+.empty{color:var(--mute);text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:12px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--gold);border-radius:14px;padding:18px;min-width:340px;max-width:560px;width:90vw}
+dialog::backdrop{background:#000a}
+dialog h2{margin:0 0 10px;font-size:17px;color:var(--gold)}
+dialog label{display:block;font-size:12px;color:var(--mute);margin:8px 0 2px}
+.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{padding:3px 9px;border:1px solid var(--line);border-radius:99px;cursor:pointer;font-size:13px}
+.chip.on{background:var(--red);border-color:var(--red);color:#fff}
+.chip.good.on{background:var(--green);border-color:var(--green)}
+.hpctl{display:flex;align-items:center;gap:8px;justify-content:center;margin:8px 0}
+.hpctl .v{font-size:30px;font-weight:700;min-width:70px;text-align:center}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1b1712;padding:8px 16px;border-radius:99px;font-weight:600;z-index:99}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚔ GLOOM COMPANION</h1>
+  <span class="pill">Round <b id="round">1</b></span>
+  <span class="pill">Scenario level <b id="level">1</b> <button class="sm" onclick="setLevel()">change</button></span>
+  <span class="spacer"></span>
+  <button onclick="undo()" id="undoBtn">↶ Undo</button>
+  <button onclick="redo()" id="redoBtn">↷ Redo</button>
+  <button onclick="addChar()">+ Character</button>
+  <button onclick="addGroup()">+ Monster type</button>
+  <button onclick="menu()">☰ Menu</button>
+  <button class="primary" id="mainBtn" onclick="mainAction()">Draw</button>
+</header>
+<main>
+  <div class="col" id="list"></div>
+  <div class="col side">
+    <div class="box"><h3>Elements</h3><div class="elems" id="elems"></div>
+      <div style="font-size:12px;color:var(--mute);margin-top:6px">Tap: inert → strong → waning → inert. Strong elements wane at end of round; waning go inert.</div></div>
+    <div class="box"><h3>Monster modifier deck</h3>
+      <div class="amd"><div class="amdcard" id="amdCard">–</div>
+        <button onclick="amdDraw()">Draw</button><button onclick="amdShuffle()">Shuffle</button></div>
+      <div id="amdInfo" style="font-size:12px;color:var(--mute);margin-top:6px"></div></div>
+    <div class="box"><h3>Tips</h3><div style="font-size:12px;color:var(--mute)">
+      Tap a portrait badge to set character initiative (before Draw) or mark a turn done (after).<br>
+      Tap a standee to edit HP &amp; conditions. Everything is tap-based.<br>
+      State autosaves in this app.</div></div>
+  </div>
+</main>
+<dialog id="dlg"></dialog>
+
+<script>
+"use strict";
+const ELEMENTS=[["fire","🔥"],["ice","❄️"],["air","💨"],["earth","🌿"],["light","☀️"],["dark","🌑"]];
+const COND_BAD=["poison","wound","stun","immobilize","disarm","muddle","curse"];
+const COND_GOOD=["strengthen","invisible","bless","regenerate"];
+const DEFAULT_AMD=[["+0",6],["+1",5],["-1",5],["+2",1],["-2",1],["x2",1],["null",1]];
+const KEY="gloom-companion-v1";
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const shuffleArr=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+let S, undoStack=[], redoStack=[];
+function fresh(){return{round:1,level:1,phase:"plan",chars:[],groups:[],
+  elements:Object.fromEntries(ELEMENTS.map(e=>[e[0],0])),
+  amd:{draw:[],discard:[],last:null,reshuffle:false}}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){} if(!S||!S.chars)S=fresh(); if(!S.amd.draw.length&&!S.amd.discard.length)amdBuild()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function commit(fn){ // snapshot for undo, mutate, save, render
+  undoStack.push(JSON.stringify(S)); if(undoStack.length>50)undoStack.shift(); redoStack=[];
+  fn(); persist(); render();
+}
+function undo(){if(!undoStack.length)return;redoStack.push(JSON.stringify(S));S=JSON.parse(undoStack.pop());persist();render()}
+function redo(){if(!redoStack.length)return;undoStack.push(JSON.stringify(S));S=JSON.parse(redoStack.pop());persist();render()}
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),1800)}
+
+/* ---------- dialog helper ---------- */
+function ask(title,fields,{ok="OK",extra=[]}={}){
+  return new Promise(res=>{
+    const d=$("#dlg");
+    d.innerHTML=`<h2>${esc(title)}</h2><form method="dialog">`+fields.map(f=>{
+      const v=f.value??"";
+      if(f.type==="textarea")return `<label>${esc(f.label)}</label><textarea name="${f.name}" rows="${f.rows||6}" placeholder="${esc(f.ph||"")}">${esc(v)}</textarea>`;
+      if(f.type==="select")return `<label>${esc(f.label)}</label><select name="${f.name}">${f.options.map(o=>`<option ${o==v?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+      if(f.type==="check")return `<label><input type="checkbox" name="${f.name}" style="width:auto" ${v?"checked":""}> ${esc(f.label)}</label>`;
+      return `<label>${esc(f.label)}</label><input name="${f.name}" type="${f.type||"text"}" value="${esc(v)}" placeholder="${esc(f.ph||"")}">`;
+    }).join("")+`<div class="btns">${extra.map((x,i)=>`<button type="button" data-x="${i}" class="${x.cls||""}">${esc(x.label)}</button>`).join("")}<button type="button" data-x="cancel">Cancel</button><button class="primary" value="ok">${esc(ok)}</button></div></form>`;
+    const form=d.querySelector("form");
+    const done=v=>{d.close();res(v)};
+    form.onsubmit=e=>{e.preventDefault();const o={};fields.forEach(f=>{const el=form.elements[f.name];o[f.name]=f.type==="check"?el.checked:el.value});done(o)};
+    form.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{const x=b.dataset.x;if(x==="cancel")return done(null);extra[x].fn();done(null)});
+    d.oncancel=()=>res(null);
+    d.showModal();
+    const first=form.querySelector("input,textarea");first&&first.focus();
+  });
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- modifier deck ---------- */
+function amdBuild(){const d=[];DEFAULT_AMD.forEach(([c,n])=>{for(let i=0;i<n;i++)d.push(c)});S.amd={draw:shuffleArr(d),discard:[],last:null,reshuffle:false}}
+function amdShuffle(){commit(()=>{S.amd.draw=shuffleArr([...S.amd.draw,...S.amd.discard]);S.amd.discard=[];S.amd.last=null;S.amd.reshuffle=false})}
+function amdDraw(){commit(()=>{
+  if(!S.amd.draw.length){S.amd.draw=shuffleArr([...S.amd.discard]);S.amd.discard=[]}
+  const c=S.amd.draw.pop();S.amd.discard.push(c);S.amd.last=c;
+  if(c==="x2"||c==="null")S.amd.reshuffle=true;
+})}
+
+/* ---------- turn order ---------- */
+function initOf(item){return item.kind==="char"?item.o.init:(item.o.current?item.o.current.init:null)}
+function order(){
+  const items=[...S.chars.map(o=>({kind:"char",o})),...S.groups.map(o=>({kind:"group",o}))];
+  if(S.phase==="plan")return items; // unsorted until draw
+  return items.sort((a,b)=>{const ia=initOf(a)??999,ib=initOf(b)??999;return ia-ib||(a.kind==="char"?-1:1)});
+}
+function currentItem(list){return list.find(i=>!i.o.done&&(i.kind==="char"||i.o.current))}
+
+/* ---------- render ---------- */
+function render(){
+  $("#round").textContent=S.round;$("#level").textContent=S.level;
+  $("#undoBtn").disabled=!undoStack.length;$("#redoBtn").disabled=!redoStack.length;
+  const mb=$("#mainBtn");
+  mb.textContent=S.phase==="plan"?"Draw":"Next round";
+  if(S.phase==="plan"){
+    const missing=S.chars.filter(c=>!c.exhausted&&c.init==null).length;
+    mb.disabled=!S.chars.length&&!S.groups.length;
+    mb.title=missing?`${missing} character initiative(s) not set`:"";
+  }else mb.disabled=false;
+
+  const list=order(),cur=S.phase==="play"?currentItem(list):null;
+  $("#list").innerHTML=list.length?list.map(i=>i.kind==="char"?charHtml(i.o,i===cur):groupHtml(i.o,i===cur)).join(""):
+    `<div class="empty">Nothing here yet.<br>Add characters and monster types with the buttons above, or open <b>☰ Menu → Import data</b> to load your own bestiary JSON.</div>`;
+  $("#list").querySelectorAll("[data-a]").forEach(el=>el.onclick=e=>{e.stopPropagation();act(el.dataset.a,el.dataset.id,el.dataset.n)});
+
+  $("#elems").innerHTML=ELEMENTS.map(([k,ic])=>{const v=S.elements[k];return `<div class="el ${v===2?"strong":v===1?"waning":""}" onclick="toggleEl('${k}')"><div style="font-size:22px">${ic}</div><div>${k}</div><div class="s">${["inert","strong","waning"][v===2?1:v===1?2:0]}</div></div>`}).join("");
+  $("#amdCard").textContent=S.amd.last??"–";
+  $("#amdInfo").textContent=`${S.amd.draw.length} in deck · ${S.amd.discard.length} discarded`+(S.amd.reshuffle?" · ⚠ shuffle at end of round":"");
+}
+function condHtml(cs){return `<div class="conds">${(cs||[]).map(c=>`<span class="cond ${COND_GOOD.includes(c)?"good":""}">${c}</span>`).join("")}</div>`}
+function charHtml(c,cur){
+  const pct=Math.max(0,c.hp/c.maxHp*100);
+  const badge=S.phase==="plan"?`<div class="n">${c.init??"?"}</div><div class="l">init</div>`:`<div class="n">${c.init??"–"}</div><div class="l">${c.done?"done":"tap"}</div>`;
+  return `<div class="row ${c.done?"done":""} ${cur?"current":""}">
+    <div class="badge" data-a="cbadge" data-id="${c.id}">${badge}</div>
+    <div class="body"><div class="title">${esc(c.name)} <span class="sub">${esc(c.cls||"")} · lvl ${c.level}${c.exhausted?" · exhausted":""}</span>
+      <span class="spacer"></span><button class="sm" data-a="cedit" data-id="${c.id}">edit</button></div>
+      <div class="stats"><span class="stat">❤ ${c.hp}/${c.maxHp}</span><span class="stat">XP ${c.xp}</span><span class="stat">💰 ${c.loot}</span>
+      <button class="sm" data-a="chp" data-id="${c.id}" data-n="-1">−HP</button><button class="sm" data-a="chp" data-id="${c.id}" data-n="1">+HP</button>
+      <button class="sm" data-a="cxp" data-id="${c.id}" data-n="1">+XP</button><button class="sm" data-a="cloot" data-id="${c.id}" data-n="1">+💰</button>
+      <button class="sm" data-a="cconds" data-id="${c.id}">conditions</button></div>
+      <div class="bar ${pct<30?"low":""}"><i style="width:${pct}%"></i></div>${condHtml(c.conds)}
+    </div></div>`;
+}
+function monStats(g,elite){const s=g.stats[elite?"elite":"normal"];return s}
+function groupHtml(g,cur){
+  const n=g.stats.normal,e=g.stats.elite;
+  const cardTxt=g.current?`<div class="card"><b>${g.current.init}</b> · ${esc(g.current.title||"")}\n${esc(g.current.text||"")}</div>`:(S.phase==="play"?`<div class="card">No ability card drawn.</div>`:"");
+  const sts=Object.entries(g.standees).sort((a,b)=>(b[1].elite-a[1].elite)||(a[0]-b[0])).map(([num,s])=>{
+    const pct=Math.max(0,s.hp/s.max*100);
+    return `<div class="st ${s.elite?"elite":""}" data-a="stedit" data-id="${g.id}" data-n="${num}"><div class="num">#${num} ${s.elite?"★":""}</div><div class="hp">${s.hp}</div><div class="bar ${pct<30?"low":""}"><i style="width:${pct}%"></i></div>${condHtml(s.conds)}${s.summon?'<div class="cond good">summon</div>':""}</div>`}).join("");
+  const free=[];for(let i=1;i<=g.max;i++)if(!g.standees[i])free.push(i);
+  return `<div class="row ${g.done?"done":""} ${cur?"current":""}">
+    <div class="badge" data-a="gbadge" data-id="${g.id}"><div class="n">${g.current?g.current.init:"–"}</div><div class="l">${g.done?"done":"tap"}</div></div>
+    <div class="body"><div class="title">${esc(g.name)} ${g.flying?'<span class="sub">flying</span>':""}
+      <span class="spacer"></span><button class="sm" data-a="gspawn" data-id="${g.id}" data-n="0">+ normal</button><button class="sm" data-a="gspawn" data-id="${g.id}" data-n="1">+ elite</button><button class="sm" data-a="gedit" data-id="${g.id}">edit</button></div>
+      <div class="stats"><span class="stat">Normal: ❤${n.hp} ⛓${n.move} ⚔${n.attack}${n.range?" ➶"+n.range:""}</span><span class="stat">Elite: ❤${e.hp} ⛓${e.move} ⚔${e.attack}${e.range?" ➶"+e.range:""}</span><span class="stat">deck ${g.draw.length}/${g.deck.length}</span></div>
+      ${cardTxt}<div class="standees">${sts}</div>
+    </div></div>`;
+}
+
+/* ---------- actions ---------- */
+function act(a,id,n){
+  const c=S.chars.find(x=>x.id===id),g=S.groups.find(x=>x.id===id);
+  switch(a){
+    case"cbadge":return S.phase==="plan"?setInit(c):commit(()=>{c.done=!c.done});
+    case"gbadge":return S.phase==="plan"?null:commit(()=>{g.done=!g.done});
+    case"chp":return commit(()=>{c.hp=clamp(c.hp+ +n,0,c.maxHp)});
+    case"cxp":return commit(()=>{c.xp+= +n});
+    case"cloot":return commit(()=>{c.loot+= +n});
+    case"cconds":return condDialog(c.name,c.conds,v=>commit(()=>{c.conds=v}));
+    case"cedit":return editChar(c);
+    case"gedit":return editGroup(g);
+    case"gspawn":return spawn(g,n==="1");
+    case"stedit":return editStandee(g,n);
+  }
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+async function setInit(c){
+  const r=await ask(`${c.name} initiative`,[{name:"v",label:"Initiative (1–99, blank to clear)",type:"number",value:c.init??""}]);
+  if(r)commit(()=>{c.init=r.v===""?null:clamp(parseInt(r.v),1,99)});
+}
+async function addChar(){
+  const r=await ask("Add character",[{name:"name",label:"Name"},{name:"cls",label:"Class / role (optional)"},{name:"level",label:"Level",type:"number",value:1},{name:"maxHp",label:"Max HP",type:"number",value:10}]);
+  if(r&&r.name)commit(()=>S.chars.push({id:uid(),name:r.name,cls:r.cls,level:+r.level||1,hp:+r.maxHp||10,maxHp:+r.maxHp||10,xp:0,loot:0,init:null,done:false,conds:[],exhausted:false}));
+}
+async function editChar(c){
+  const r=await ask("Edit "+c.name,[{name:"name",label:"Name",value:c.name},{name:"cls",label:"Class",value:c.cls},{name:"level",label:"Level",type:"number",value:c.level},{name:"maxHp",label:"Max HP",type:"number",value:c.maxHp},{name:"hp",label:"Current HP",type:"number",value:c.hp},{name:"xp",label:"XP",type:"number",value:c.xp},{name:"loot",label:"Loot",type:"number",value:c.loot},{name:"exhausted",label:"Exhausted",type:"check",value:c.exhausted}],
+   {extra:[{label:"Remove",cls:"danger",fn:()=>commit(()=>{S.chars=S.chars.filter(x=>x!==c)})}]});
+  if(r)commit(()=>{Object.assign(c,{name:r.name,cls:r.cls,level:+r.level,maxHp:+r.maxHp,hp:clamp(+r.hp,0,+r.maxHp),xp:+r.xp,loot:+r.loot,exhausted:r.exhausted})});
+}
+function condDialog(name,cur,cb){
+  const d=$("#dlg");let sel=new Set(cur||[]);
+  const chip=(c,good)=>`<span class="chip ${good?"good":""} ${sel.has(c)?"on":""}" data-c="${c}">${c}</span>`;
+  d.innerHTML=`<h2>${esc(name)} — conditions</h2><div class="chips">${COND_BAD.map(c=>chip(c)).join("")}${COND_GOOD.map(c=>chip(c,1)).join("")}</div><div class="btns"><button id="cx">Cancel</button><button class="primary" id="cok">Done</button></div>`;
+  d.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{const c=ch.dataset.c;sel.has(c)?sel.delete(c):sel.add(c);ch.classList.toggle("on")});
+  d.querySelector("#cx").onclick=()=>d.close();d.querySelector("#cok").onclick=()=>{d.close();cb([...sel])};
+  d.showModal();
+}
+const statFields=(p,s)=>[
+  {name:p+"hp",label:p+" HP",type:"number",value:s.hp},{name:p+"move",label:p+" move",type:"number",value:s.move},
+  {name:p+"attack",label:p+" attack",type:"number",value:s.attack},{name:p+"range",label:p+" range (0 = melee)",type:"number",value:s.range}];
+const readStats=(p,r)=>({hp:+r[p+"hp"]||1,move:+r[p+"move"]||0,attack:+r[p+"attack"]||0,range:+r[p+"range"]||0});
+const DECK_HELP="One card per line:  initiative | title | text\n e.g.  32 | Lunge | Move 1, Attack 2";
+function parseDeck(t){return t.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const [i,ti,...rest]=l.split("|");return{id:uid(),init:parseInt(i)||50,title:(ti||"").trim(),text:rest.join("|").trim()}})}
+const deckText=d=>d.map(c=>`${c.init} | ${c.title} | ${c.text}`).join("\n");
+async function addGroup(){
+  const z={hp:6,move:2,attack:2,range:0},e={hp:10,move:2,attack:3,range:0};
+  const r=await ask("Add monster type",[{name:"name",label:"Name"},{name:"max",label:"Standee count",type:"number",value:10},{name:"flying",label:"Flying",type:"check"},
+    ...statFields("n_",z),...statFields("e_",e),{name:"deck",label:"Ability deck ("+DECK_HELP+")",type:"textarea",rows:6,value:"20 | Quick Strike | Move 1, Attack 2\n45 | Heavy Blow | Attack 3\n60 | Shuffle Forward | Move 3"}]);
+  if(r&&r.name)commit(()=>{const deck=parseDeck(r.deck);S.groups.push({id:uid(),name:r.name,max:+r.max||10,flying:r.flying,stats:{normal:readStats("n_",r),elite:readStats("e_",r)},deck,draw:shuffleArr(deck.map(c=>c.id)),discard:[],current:null,done:false,standees:{}})});
+}
+async function editGroup(g){
+  const r=await ask("Edit "+g.name,[{name:"name",label:"Name",value:g.name},{name:"max",label:"Standee count",type:"number",value:g.max},{name:"flying",label:"Flying",type:"check",value:g.flying},
+    ...statFields("n_",g.stats.normal),...statFields("e_",g.stats.elite),{name:"deck",label:"Ability deck ("+DECK_HELP+")",type:"textarea",rows:6,value:deckText(g.deck)}],
+    {extra:[{label:"Remove",cls:"danger",fn:()=>commit(()=>{S.groups=S.groups.filter(x=>x!==g)})}]});
+  if(r)commit(()=>{Object.assign(g,{name:r.name,max:+r.max||10,flying:r.flying,stats:{normal:readStats("n_",r),elite:readStats("e_",r)}});
+    const nd=parseDeck(r.deck);if(deckText(nd)!==deckText(g.deck)){g.deck=nd;g.draw=shuffleArr(nd.map(c=>c.id));g.discard=[];g.current=null}})
+}
+function spawn(g,elite){
+  const free=[];for(let i=1;i<=g.max;i++)if(!g.standees[i])free.push(i);
+  if(!free.length)return toast("No free standees");
+  const n=free[Math.floor(Math.random()*free.length)],s=g.stats[elite?"elite":"normal"];
+  commit(()=>{g.standees[n]={elite,hp:s.hp,max:s.hp,conds:[],summon:false}});
+}
+function editStandee(g,n){
+  const s=g.standees[n];const d=$("#dlg");
+  const draw=()=>{
+    d.innerHTML=`<h2>${esc(g.name)} #${n} ${s.elite?"(elite)":""}</h2>
+    <div class="hpctl"><button data-d="-5">−5</button><button data-d="-1">−1</button><div class="v">${s.hp}<span style="font-size:14px;color:var(--mute)">/${s.max}</span></div><button data-d="1">+1</button><button data-d="5">+5</button></div>
+    <div class="chips">${[...COND_BAD,...COND_GOOD].map(c=>`<span class="chip ${COND_GOOD.includes(c)?"good":""} ${s.conds.includes(c)?"on":""}" data-c="${c}">${c}</span>`).join("")}</div>
+    <div class="btns"><button class="danger" id="kill">Kill / remove</button><button id="sum">${s.summon?"Unmark":"Mark"} summoned</button><button id="el">Make ${s.elite?"normal":"elite"}</button><button class="primary" id="ok">Done</button></div>`;
+    d.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{s.hp=clamp(s.hp+ +b.dataset.d,0,s.max);draw()});
+    d.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{const c=ch.dataset.c,i=s.conds.indexOf(c);i<0?s.conds.push(c):s.conds.splice(i,1);draw()});
+    d.querySelector("#sum").onclick=()=>{s.summon=!s.summon;draw()};
+    d.querySelector("#el").onclick=()=>{const old=g.stats[s.elite?"elite":"normal"].hp;s.elite=!s.elite;const nw=g.stats[s.elite?"elite":"normal"].hp;s.max=nw;s.hp=clamp(s.hp+nw-old,1,nw);draw()};
+    d.querySelector("#kill").onclick=()=>finish(true);
+    d.querySelector("#ok").onclick=()=>finish(false);
+  };
+  const pre=JSON.stringify(S);
+  const finish=kill=>{d.close();if(kill||s.hp<=0)delete g.standees[n];
+    if(JSON.stringify(S)!==pre){undoStack.push(pre);if(undoStack.length>50)undoStack.shift();redoStack=[]}persist();render()};
+  d.oncancel=()=>{S=JSON.parse(pre);render()};
+  draw();d.showModal();
+}
+
+/* ---------- round flow ---------- */
+function toggleEl(k){commit(()=>{const v=S.elements[k];S.elements[k]=v===0?2:v===2?1:0})}
+async function setLevel(){const r=await ask("Scenario level",[{name:"v",label:"Level (0–7)",type:"number",value:S.level}]);if(r)commit(()=>{S.level=clamp(parseInt(r.v)||0,0,7)})}
+function mainAction(){S.phase==="plan"?draw():nextRound()}
+function draw(){
+  const missing=S.chars.filter(c=>!c.exhausted&&c.init==null);
+  if(missing.length&&!confirm(`Initiative not set for: ${missing.map(c=>c.name).join(", ")}.\nDraw anyway?`))return;
+  commit(()=>{
+    S.phase="play";
+    S.groups.forEach(g=>{
+      g.done=false;
+      if(!Object.keys(g.standees).length||!g.deck.length){g.current=null;return}
+      if(g.current)g.discard.push(g.current.id);
+      if(!g.draw.length){g.draw=shuffleArr([...g.discard]);g.discard=[]}
+      const id=g.draw.pop();g.current=g.deck.find(c=>c.id===id)||null;
+    });
+    S.chars.forEach(c=>{c.done=c.exhausted});
+  });
+}
+function nextRound(){
+  commit(()=>{
+    S.round++;S.phase="plan";
+    for(const k in S.elements)if(S.elements[k]>0)S.elements[k]--;
+    if(S.amd.reshuffle){S.amd.draw=shuffleArr([...S.amd.draw,...S.amd.discard]);S.amd.discard=[];S.amd.reshuffle=false;S.amd.last=null;toast("Modifier deck reshuffled")}
+    S.chars.forEach(c=>{c.init=null;c.done=false});
+    S.groups.forEach(g=>{g.done=false;g.current=null});
+  });
+}
+
+/* ---------- menu / import / export ---------- */
+function menu(){
+  const d=$("#dlg");
+  d.innerHTML=`<h2>Menu</h2><div class="btns" style="justify-content:flex-start;flex-direction:column;align-items:stretch">
+    <button id="m1">Export game + data (JSON)</button><button id="m2">Import game / bestiary (JSON)</button>
+    <button id="m3">Reset modifier deck</button><button id="m4" class="danger">New scenario (clear monsters, keep characters)</button>
+    <button id="m5" class="danger">Wipe everything</button><button id="m6">Close</button></div>`;
+  const q=i=>d.querySelector("#m"+i);
+  q(1).onclick=()=>{d.close();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));a.download="gloom-companion.json";a.click()};
+  q(2).onclick=async()=>{d.close();const r=await ask("Import JSON",[{name:"t",label:"Paste exported JSON, or {\"groups\":[…]} to add monster types",type:"textarea",rows:10}],{ok:"Import"});
+    if(r&&r.t.trim())try{importData(JSON.parse(r.t))}catch(e){alert("Invalid JSON: "+e.message)}};
+  q(3).onclick=()=>{d.close();commit(amdBuild)};
+  q(4).onclick=()=>{d.close();if(confirm("Remove all monsters?"))commit(()=>{S.groups=[];S.round=1;S.phase="plan";S.chars.forEach(c=>{c.init=null;c.done=false;c.hp=c.maxHp;c.conds=[]})})};
+  q(5).onclick=()=>{d.close();if(confirm("Erase all data?"))commit(()=>{S=fresh();amdBuild()})};
+  q(6).onclick=()=>d.close();d.showModal();
+}
+function importData(o){
+  commit(()=>{
+    if(o.chars&&o.round!=null){S=o;return}   // full state
+    (o.groups||[]).forEach(g=>{const deck=(g.deck||[]).map(c=>({id:uid(),init:c.init,title:c.title||"",text:c.text||""}));
+      S.groups.push({id:uid(),name:g.name,max:g.max||10,flying:!!g.flying,stats:g.stats,deck,draw:shuffleArr(deck.map(c=>c.id)),discard:[],current:null,done:false,standees:{}})});
+    (o.chars||[]).forEach(c=>S.chars.push({id:uid(),name:c.name,cls:c.cls||"",level:c.level||1,hp:c.maxHp,maxHp:c.maxHp,xp:0,loot:0,init:null,done:false,conds:[],exhausted:false}));
+  });
+}
+
+load();render();
+if(location.search.includes("test"))window.__S=()=>S;
+</script>
+</body>
+</html>
