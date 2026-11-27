@@ -22,6 +22,8 @@ namespace InstantCartographer
         internal static ConfigEntry<float> MaxDistance;
         internal static ConfigEntry<float> Cooldown;
         internal static ConfigEntry<bool> Notify;
+        internal static ConfigEntry<bool> ReadTables;
+        internal static ConfigEntry<bool> WriteTables;
 
         private static float _lastSync = -999f;
 
@@ -33,6 +35,10 @@ namespace InstantCartographer
                 "Only sync tables within this many metres of you. 0 = no limit (every table the game has loaded).");
             Cooldown = Config.Bind("General", "CooldownSeconds", 5f,
                 "Minimum seconds between syncs, so toggling the map repeatedly doesn't redo the work.");
+            ReadTables = Config.Bind("General", "ReadTables", true,
+                "Read: merge what the tables know into your map (the table's 'show/read' side).");
+            WriteTables = Config.Bind("General", "WriteTables", true,
+                "Write: publish your exploration and pins to the tables so others can read them (the table's 'place markings' side).");
             Notify = Config.Bind("General", "ShowMessage", true, "Show a message when a sync merged table data.");
             new Harmony(Guid).PatchAll(typeof(InstantCartographerPlugin).Assembly);
         }
@@ -45,30 +51,74 @@ namespace InstantCartographer
 
             var origin = Player.m_localPlayer.transform.position;
             float max = MaxDistance.Value;
-            int merged = 0;
+            int read = 0, written = 0;
+            var zdos = FindTableZdos();
 
-            foreach (var zdo in FindTableZdos())
+            // 1) READ first, so what we then write contains everyone's data.
+            if (ReadTables.Value)
+                foreach (var zdo in zdos)
+                {
+                    if (!InRange(zdo, origin, max)) continue;
+                    try
+                    {
+                        var data = zdo.GetByteArray(ZDOVars.s_data);
+                        if (data == null || data.Length == 0) continue;
+                        Minimap.instance.AddSharedMapData(data); read++;
+                    }
+                    catch (Exception e) { Instance.Logger.LogWarning("Read table failed: " + e.Message); }
+                }
+
+            // 2) WRITE: publish our (now merged) map to each table.
+            if (WriteTables.Value)
             {
-                if (zdo == null) continue;
-                if (max > 0f && Vector3.Distance(zdo.GetPosition(), origin) > max) continue;
-                byte[] data;
-                try { data = zdo.GetByteArray(ZDOVars.s_data); }
-                catch (Exception e) { Instance.Logger.LogWarning("Read table failed: " + e.Message); continue; }
-                if (data == null || data.Length == 0) continue;
-                try { Minimap.instance.AddSharedMapData(data); merged++; }
-                catch (Exception e) { Instance.Logger.LogWarning("Merge table failed: " + e.Message); }
+                var handled = new HashSet<ZDOID>();
+                // Tables with a live object: run the game's own write logic (handles ownership / RPCs).
+                var onWrite = AccessTools.Method(typeof(MapTable), "OnWrite");
+                foreach (var table in UnityEngine.Object.FindObjectsOfType<MapTable>())
+                {
+                    var nview = table.GetComponent<ZNetView>();
+                    if (nview == null || !nview.IsValid()) continue;
+                    if (max > 0f && Vector3.Distance(table.transform.position, origin) > max) continue;
+                    try
+                    {
+                        if (onWrite != null)
+                        {
+                            onWrite.Invoke(table, new object[] { null, Player.m_localPlayer, null });
+                            handled.Add(nview.GetZDO().m_uid); written++;
+                        }
+                    }
+                    catch (Exception e) { Instance.Logger.LogWarning("Write table failed: " + e.Message); }
+                }
+                // Far-away tables (only present when we hold every ZDO: single-player / host).
+                bool authoritative = ZNet.instance != null && ZNet.instance.IsServer();
+                foreach (var zdo in zdos)
+                {
+                    if (handled.Contains(zdo.m_uid) || !InRange(zdo, origin, max)) continue;
+                    if (!authoritative && !zdo.IsOwner()) continue;
+                    try
+                    {
+                        var merged = Minimap.instance.GetSharedMapData(zdo.GetByteArray(ZDOVars.s_data));
+                        if (merged == null) continue;
+                        if (!zdo.IsOwner()) zdo.SetOwner(ZDOMan.GetSessionID());
+                        zdo.Set(ZDOVars.s_data, merged); written++;
+                    }
+                    catch (Exception e) { Instance.Logger.LogWarning("Write table failed: " + e.Message); }
+                }
             }
 
-            if (merged > 0 && Notify.Value)
+            if ((read > 0 || written > 0) && Notify.Value)
                 Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft,
-                    "Cartography synced (" + merged + (merged == 1 ? " table)" : " tables)"));
+                    "Cartography synced (read " + read + ", wrote " + written + ")");
         }
+
+        private static bool InRange(ZDO zdo, Vector3 origin, float max) =>
+            zdo != null && (max <= 0f || Vector3.Distance(zdo.GetPosition(), origin) <= max);
 
         /// <summary>
         /// Single-player and hosts hold every ZDO in memory, so all tables are found.
         /// Clients on a dedicated server only hold ZDOs near them, so only nearby tables are found.
         /// </summary>
-        private static IEnumerable<ZDO> FindTableZdos()
+        private static List<ZDO> FindTableZdos()
         {
             var seen = new HashSet<ZDOID>();
             var result = new List<ZDO>();

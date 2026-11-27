@@ -2,6 +2,6 @@
   "name": "InstantCartographer",
   "version_number": "1.0.0",
   "website_url": "https://github.com/bshayler/valheim-fat-enemies",
-  "description": "Open your map and every Cartography Table syncs to it automatically. No more walking back to press E.",
+  "description": "Open your map and every Cartography Table syncs both ways: reads others' data and publishes your markings. No more walking back to press E.",
   "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
 }
