@@ -1,2 +1,4 @@
 bin/
 obj/
+InstantCartographer/thunderstore/pkg/*.dll
+InstantCartographer/thunderstore/*.zip
